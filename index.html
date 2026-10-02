@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Live Demo: Cloud Cost Optimization</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=IBM+Plex+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F1F4F2;--ink:#14231F;--mute:#51625C;--line:#CBD5D0;--card:#FFF;--blue:#1B52E0;--green:#0A8A57;--red:#CF3B27;--amber:#B26A00;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1A17;--ink:#E8F0EC;--mute:#9DB0A8;--line:#2A3A35;--card:#16251F;--blue:#6C93FF;--green:#38C98C;--red:#FF7A66;--amber:#F0B04A}}
+:root[data-theme="dark"]{--bg:#0F1A17;--ink:#E8F0EC;--mute:#9DB0A8;--line:#2A3A35;--card:#16251F;--blue:#6C93FF;--green:#38C98C;--red:#FF7A66;--amber:#F0B04A}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 "IBM Plex Sans",system-ui,sans-serif}
+h1,h2{font-family:"Bricolage Grotesque","IBM Plex Sans",sans-serif;margin:0;line-height:1.1}
+main{max-width:1000px;margin:0 auto;padding:28px 18px 56px}
+h1{font-size:clamp(28px,5vw,44px);font-weight:800}
+h2{font-size:22px;margin:30px 0 10px}
+.sub{color:var(--mute);margin:8px 0 18px;max-width:62ch}
+.meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.m{background:var(--card);border:1.5px solid var(--line);border-radius:6px;padding:12px 14px}
+.m small{color:var(--mute);font-size:13px}
+.m b{display:block;font:800 26px "Bricolage Grotesque",sans-serif}
+.m.bad b{color:var(--red)}.m.good b{color:var(--green)}
+.banner{margin-top:12px;padding:10px 14px;border-radius:6px;border:1.5px solid var(--amber);color:var(--amber);font-weight:500;display:none}
+.banner.red{border-color:var(--red);color:var(--red)}
+.banner.show{display:block}
+.bud{height:14px;background:var(--line);border-radius:3px;margin-top:12px;position:relative;overflow:hidden}
+.bud i{display:block;height:100%;background:var(--blue);width:0}
+.bud u{position:absolute;top:0;bottom:0;left:80%;border-left:2px dashed var(--ink)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+button{font:500 15px "IBM Plex Sans",sans-serif;padding:9px 16px;border-radius:6px;border:1.5px solid var(--ink);background:var(--card);color:var(--ink);cursor:pointer}
+button.p{background:var(--blue);border-color:var(--blue);color:#fff}
+button.g{background:var(--green);border-color:var(--green);color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.card{background:var(--card);border:1.5px solid var(--line);border-radius:6px;padding:14px}
+canvas{width:100%;height:240px;display:block}
+.leg{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--mute);margin-top:6px}
+.leg span:before{content:"";display:inline-block;width:16px;height:3px;margin-right:6px;vertical-align:middle;background:var(--c)}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th{text-align:left;font-size:13px;color:var(--mute);font-weight:500;padding:8px;border-bottom:2px solid var(--line)}
+td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle;font-size:15px}
+.cpu{display:inline-block;width:60px;height:8px;background:var(--line);border-radius:2px;vertical-align:middle;margin-right:6px}
+.cpu i{display:block;height:100%;background:var(--blue);border-radius:2px}
+.cpu.low i{background:var(--red)}
+.tag{color:var(--mute);font-size:13px}
+.rec{font-size:14px}
+.rec b{display:block}
+.done{color:var(--green);font-weight:500}
+.rate{font-variant-numeric:tabular-nums}
+s{color:var(--mute)}
+#log{list-style:none;margin:0;padding:0;max-height:180px;overflow:auto;font-size:14px}
+#log li{padding:5px 0;border-bottom:1px solid var(--line)}
+.teams{display:grid;gap:6px}
+.t{display:grid;grid-template-columns:90px 1fr 70px;gap:8px;align-items:center;font-size:14px}
+.t div{height:12px;background:var(--line);border-radius:2px;overflow:hidden}
+.t i{display:block;height:100%;background:var(--blue);transition:width .3s}
+.t.un i{background:var(--red)}
+.cols{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+@media(max-width:760px){.cols{grid-template-columns:1fr}}
+#sum{display:none;border:2px solid var(--green);margin-top:16px}
+#sum.show{display:block}
+</style>
+</head>
+<body>
+<main>
+<h1>Live demo: optimize a cloud bill</h1>
+<p class="sub">A simulated company runs 10 cloud resources. One second here equals one day. Start the month, analyze the resources, apply the fixes, and watch the forecast fall below the budget.</p>
+
+<div class="meters">
+  <div class="m"><small>Day</small><b id="mDay">0 / 30</b></div>
+  <div class="m"><small>Spent so far</small><b id="mSpent">$0</b></div>
+  <div class="m"><small>Burn rate</small><b id="mRate">$0/hr</b></div>
+  <div class="m" id="mfBox"><small>Month-end forecast</small><b id="mF">$0</b></div>
+  <div class="m"><small>Budget</small><b>$1,800</b></div>
+</div>
+<div class="bud" aria-hidden="true"><i id="bud"></i><u></u></div>
+<div class="banner" id="banner" role="status"></div>
+
+<div class="bar">
+  <button class="p" id="go">Start month</button>
+  <button id="speed">Speed: 1x</button>
+  <button id="an">Analyze resources</button>
+  <button class="g" id="all" disabled>Apply all fixes</button>
+  <button id="reset">Reset</button>
+</div>
+
+<div class="cols">
+  <div class="card"><canvas id="cv"></canvas>
+    <div class="leg"><span style="--c:#8a9a93">Do nothing</span><span style="--c:#1B52E0">Your actual spend</span><span style="--c:#CF3B27">Budget</span></div>
+  </div>
+  <div class="card"><b>Cost by team (per month)</b><div class="teams" id="teams" style="margin-top:10px"></div>
+    <p class="tag" style="margin:10px 0 0">Untagged resources show as Unassigned: nobody owns that cost.</p></div>
+</div>
+
+<h2>Resources</h2>
+<div class="card tw"><table>
+<thead><tr><th>Resource</th><th>Team</th><th>CPU use</th><th>$/hr</th><th>Recommendation</th></tr></thead>
+<tbody id="rows"></tbody></table></div>
+
+<h2>Activity log</h2>
+<div class="card"><ul id="log"><li class="tag">Nothing yet. Press Start month.</li></ul></div>
+
+<div class="card" id="sum"><h2 style="margin-top:0">Month complete</h2><p id="sumTxt" style="margin:0"></p></div>
+</main>
+<script>
+(function(){
+var BUDGET=1800,DAYS=30,H=24;
+var DEF=[
+ {n:"web-prod-1",t:"Web",cpu:64,r:.40,a:"Reserved",w:"Steady 24/7 load: commit for 1 year",f:.6},
+ {n:"api-prod",t:"Backend",cpu:58,r:.40,a:"Reserved",w:"Steady 24/7 load: commit for 1 year",f:.6},
+ {n:"dev-server-1",t:"Dev",cpu:7,r:.40,a:"Right-size",w:"Uses 7% CPU: move to a smaller instance",f:.5},
+ {n:"dev-server-2",t:"Dev",cpu:41,r:.40,a:"Schedule",w:"Used 9am-6pm only: switch off nights",f:.5},
+ {n:"test-vm",t:"QA",cpu:0,r:.20,a:"Delete",w:"0% CPU for 30 days: idle",f:0},
+ {n:"old-db-copy",t:"",cpu:0,r:.80,a:"Delete",w:"No owner, no traffic: idle",f:0},
+ {n:"report-batch",t:"Data",cpu:35,r:.40,a:"Spot",w:"Nightly job, safe to restart: use spot",f:.3},
+ {n:"snapshots-2TB",t:"",cpu:null,r:.14,a:"Tier",w:"Old data: move to cold storage",f:.25},
+ {n:"unattached-disk",t:"",cpu:null,r:.055,a:"Delete",w:"Not attached to any server",f:0},
+ {n:"unused-ips (3)",t:"",cpu:null,r:.015,a:"Delete",w:"Not attached to anything",f:0}
+];
+var S,timer,speed=1;
+function fresh(){S={day:0,spent:0,base:0,hist:[[0,0,0]],res:DEF.map(function(d){return{n:d.n,t:d.t,cpu:d.cpu,r:d.r,a:d.a,w:d.w,f:d.f,ap:false}}),an:false,run:false,alerted80:false,alertedF:false,log:[]}}
+function eff(x){return x.ap?x.r*x.f:x.r}
+function burn(){return S.res.reduce(function(s,x){return s+eff(x)},0)}
+function baseBurn(){return S.res.reduce(function(s,x){return s+x.r},0)}
+function $(v){return"$"+Math.round(v).toLocaleString("en-US")}
+function id(i){return document.getElementById(i)}
+function log(m){S.log.unshift("Day "+Math.floor(S.day)+": "+m);id("log").innerHTML=S.log.map(function(l){return"<li>"+l+"</li>"}).join("")}
+function apply(i){var x=S.res[i];if(x.ap)return;x.ap=true;var sv=(x.r-x.r*x.f)*720;log(x.a+" on "+x.n+" saves about "+$(sv)+" a month.");draw()}
+function banner(msg,red){var b=id("banner");b.textContent=msg;b.className="banner show"+(red?" red":"")}
+function draw(){
+ var b=burn(),fc=S.spent+b*H*(DAYS-S.day);
+ id("mDay").textContent=Math.floor(S.day)+" / "+DAYS;
+ id("mSpent").textContent=$(S.spent);
+ id("mRate").textContent="$"+b.toFixed(2)+"/hr";
+ id("mF").textContent=$(fc);
+ id("mfBox").className="m "+(fc>BUDGET?"bad":"good");
+ id("bud").style.width=Math.min(S.spent/BUDGET*100,100)+"%";
+ if(S.spent>=BUDGET*.8&&!S.alerted80){S.alerted80=true;banner("Budget alert: 80% of the monthly budget is already spent.",false);log("Alert: 80% of budget used.")}
+ if(S.spent>=BUDGET&&!S.over){S.over=true;banner("Budget exceeded: spend is over "+$(BUDGET)+".",true)}
+ if(S.run&&fc>BUDGET&&!S.alertedF){S.alertedF=true;banner("Forecast "+$(fc)+" is over the "+$(BUDGET)+" budget. Analyze your resources.",true)}
+ if(fc<=BUDGET&&S.alertedF&&!S.over){S.alertedF=false;banner("Forecast is back under budget at "+$(fc)+".",false)}
+ rows();teams();chart();
+ id("all").disabled=!S.an||S.res.every(function(x){return x.ap});
+}
+function rows(){
+ id("rows").innerHTML=S.res.map(function(x,i){
+  var cpu=x.cpu===null?'<span class="tag">storage</span>':'<span class="cpu'+(x.cpu<15?' low':'')+'"><i style="width:'+x.cpu+'%"></i></span>'+x.cpu+'%';
+  var rate=x.ap?'<s>'+x.r.toFixed(3)+'</s> '+eff(x).toFixed(3):x.r.toFixed(3);
+  var rec=x.ap?'<span class="done">'+x.a+' applied</span>':(S.an?'<div class="rec"><b>'+x.a+'</b>'+x.w+'</div> <button data-i="'+i+'">Apply</button>':'<span class="tag">Run analysis to see advice</span>');
+  return'<tr><td><b>'+x.n+'</b></td><td>'+(x.t||'<span class="tag" style="color:var(--red)">untagged</span>')+'</td><td>'+cpu+'</td><td class="rate">'+rate+'</td><td>'+rec+'</td></tr>'}).join("");
+}
+function teams(){
+ var m={};S.res.forEach(function(x){var k=x.t||"Unassigned";m[k]=(m[k]||0)+eff(x)*720});
+ var mx=Math.max.apply(null,Object.keys(m).map(function(k){return m[k]}).concat([1]));
+ id("teams").innerHTML=Object.keys(m).sort(function(a,b){return m[b]-m[a]}).map(function(k){return'<div class="t'+(k==="Unassigned"?' un':'')+'"><span>'+k+'</span><div><i style="width:'+(m[k]/mx*100)+'%"></i></div><span>'+$(m[k])+'</span></div>'}).join("");
+}
+function chart(){
+ var c=id("cv"),dpr=window.devicePixelRatio||1,w=c.clientWidth,h=c.clientHeight;
+ c.width=w*dpr;c.height=h*dpr;var g=c.getContext("2d");g.scale(dpr,dpr);
+ var cs=getComputedStyle(document.documentElement),ink=cs.getPropertyValue("--mute").trim()||"#555",ln=cs.getPropertyValue("--line").trim()||"#ccc",bl=cs.getPropertyValue("--blue").trim(),rd=cs.getPropertyValue("--red").trim();
+ var L=48,R=8,T=10,B=24,pw=w-L-R,ph=h-T-B,YM=2500;
+ function X(d){return L+d/DAYS*pw}function Y(v){return T+ph-v/YM*ph}
+ g.font="12px sans-serif";g.fillStyle=ink;g.strokeStyle=ln;g.lineWidth=1;
+ for(var v=0;v<=YM;v+=500){g.beginPath();g.moveTo(L,Y(v));g.lineTo(w-R,Y(v));g.stroke();g.fillText("$"+v,4,Y(v)+4)}
+ for(var d=0;d<=DAYS;d+=10)g.fillText("Day "+d,X(d)-14,h-6);
+ g.setLineDash([6,4]);g.strokeStyle=rd;g.lineWidth=2;g.beginPath();g.moveTo(L,Y(BUDGET));g.lineTo(w-R,Y(BUDGET));g.stroke();g.setLineDash([]);
+ function line(i,col,wd){g.strokeStyle=col;g.lineWidth=wd;g.beginPath();S.hist.forEach(function(p,k){k?g.lineTo(X(p[0]),Y(p[i])):g.moveTo(X(p[0]),Y(p[i]))});g.stroke()}
+ line(2,"#8a9a93",2);line(1,bl,3);
+}
+function tick(){
+ var dt=.1*speed,b=burn(),bb=baseBurn();
+ if(S.day+dt>=DAYS)dt=DAYS-S.day;
+ S.spent+=b*H*dt;S.base+=bb*H*dt;S.day+=dt;S.hist.push([S.day,S.spent,S.base]);
+ draw();
+ if(S.day>=DAYS)finish();
+}
+function finish(){
+ clearInterval(timer);S.run=false;id("go").textContent="Month finished";id("go").disabled=true;
+ var sv=S.base-S.spent,ok=S.spent<=BUDGET;
+ id("sum").className="card show";
+ id("sumTxt").textContent="Without optimization the month would have cost "+$(S.base)+". Your actual bill was "+$(S.spent)+", which is "+$(sv)+" less ("+Math.round(sv/S.base*100)+"%) and "+(ok?"within":"over")+" the "+$(BUDGET)+" budget. The sooner you act, the more you save, because every day of waste is billed.";
+}
+id("go").onclick=function(){
+ if(S.run){S.run=false;clearInterval(timer);this.textContent="Resume";return}
+ S.run=true;this.textContent="Pause";if(S.day===0)log("Month started. Resources are running with no optimization.");
+ timer=setInterval(tick,100);
+};
+id("speed").onclick=function(){speed=speed===1?2:speed===2?4:1;this.textContent="Speed: "+speed+"x"};
+id("an").onclick=function(){
+ var b=this;b.disabled=true;b.textContent="Scanning...";
+ setTimeout(function(){S.an=true;b.textContent="Analysis done";log("Analysis found "+S.res.length+" resources to review. Idle and oversized ones are flagged.");draw()},900);
+};
+id("all").onclick=function(){S.res.forEach(function(x,i){apply(i)})};
+id("rows").onclick=function(e){var i=e.target.getAttribute("data-i");if(i!==null)apply(+i)};
+id("reset").onclick=function(){
+ clearInterval(timer);fresh();speed=1;
+ id("go").textContent="Start month";id("go").disabled=false;id("speed").textContent="Speed: 1x";
+ id("an").disabled=false;id("an").textContent="Analyze resources";
+ id("banner").className="banner";id("sum").className="card";
+ id("log").innerHTML='<li class="tag">Nothing yet. Press Start month.</li>';draw();
+};
+window.addEventListener("resize",chart);
+fresh();draw();
+})();
+</script>
+</body>
+</html>
